@@ -1,6 +1,5 @@
 from math import atan2, pi, sin, cos
 from abc import ABC
-import re
 
 import pygame
 from pygame.event import set_blocked
