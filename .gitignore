@@ -9,3 +9,4 @@ dist/
 # uv generated files
 pyproject.toml
 uv.lock
+main.spec
