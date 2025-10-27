@@ -1,0 +1,11 @@
+#!/bin/bash
+# Compiles the project to linux binary
+
+MAIN_DIR="/home/p1geon/Documents/code/laser-reflect" # change this path
+MAIN_FILE="$MAIN_DIR/main.py"
+SCRIPTS_DIR="$MAIN_DIR/scripts"
+
+# PyInstaller command
+pyinstaller --onefile --windowed \
+    --add-data "$SCRIPTS_DIR:scripts" \
+    $MAIN_FILE
