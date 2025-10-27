@@ -1,0 +1,11 @@
+# Python-generated files
+__pycache__/
+build/
+dist/
+
+# Virtual environment
+.venv
+
+# uv generated files
+pyproject.toml
+uv.lock

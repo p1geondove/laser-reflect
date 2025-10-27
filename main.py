@@ -1,8 +1,6 @@
 import sys
 import pygame
 
-from math import pi
-
 from scripts.prim import Line, Circle, Ellipse, Prim
 from scripts.laser import Laser
 from scripts.const import WIDTH, HEIGHT, MAX_BOUNCES, MAX_DISTANCE
@@ -16,28 +14,13 @@ def main():
     max_bounces = 512
     max_distance = 10000
 
-    laser = Laser(450,420,0)
+    laser = Laser(100,400,0)
     prims:list[Prim] = [
-        Circle(400, 0, 450),
-        Circle(400, 0, 340),
-        Circle(400, 800, 340),
-        Circle(400, 800, 300),
-        Circle(400, 580, 50),
-        Circle(400, 800, 450),
-        Line(300,400,500,400),
-        Line(400,340,400,320),
+        Ellipse(600,400,200,100,0),
+        Circle(100,100,100),
+        Line(309,420,331,380)
     ]
-    """
-    prims:list[Prim] = [
-        Ellipse(200,100,200,100,0),
-        Line(0,0,100,100)
-        #Ellipse(600,200,200,100,pi/2),
-        #Ellipse(200,600,200,100,pi),
-        #Ellipse(200,600,200,100,pi/2*3),
-        #Ellipse(400,400,200,100,pi/4),
-    ]
-    """
-
+    
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

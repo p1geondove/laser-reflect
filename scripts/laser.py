@@ -74,23 +74,18 @@ class Laser:
             return
  
         if fancy:
+            # create a seperate surface for every single line
             surfaces = []
             for (ax, ay), (bx, by) in pairwise(self.points):
-                # Calculate bounding box
                 px = min(ax, bx)
                 py = min(ay, by)
-                dx = abs(ax - bx)
-                dy = abs(ay - by)
-                
-                # Make surface at least 1 pixel in each dimension
+                dx = abs(ax - bx)+1 # please dont ask me about this off by one, i have no clue... and it hurts my soul sooo bad
+                dy = abs(ay - by)+1
                 surf = pygame.Surface((max(1, dx), max(1, dy)), pygame.SRCALPHA)
-                
-                # Transform line coordinates to surface-local coordinates
                 local_ax = ax - px
                 local_ay = ay - py
                 local_bx = bx - px
                 local_by = by - py
-                
                 pygame.draw.aaline(surf, COLOR_LASER_FANCY, (local_ax, local_ay), (local_bx, local_by))
                 surfaces.append((surf, (px, py)))
             surface.blits(surfaces)
@@ -100,18 +95,6 @@ class Laser:
             pygame.draw.aalines(surf, COLOR_LASER, False, self.points)
             surface.blit(surf)
 
-
-        """
-        if fancy:
-            # make a surface for every line and blits them to surface, super slow
-            surfaces = []
-            for idx, p1 in enumerate(self.points[:-1],1):
-                p2 = self.points[idx]
-                surf = pygame.Surface(surface.size, pygame.SRCALPHA)
-                pygame.draw.aaline(surf, COLOR_LASER_FANCY, p1, p2)
-                surfaces.append((surf, (0,0)))
-            surface.blits(surfaces)
-        """
-                # position dot
+        # position dot
         pygame.draw.aacircle(surface, "red", (self.ray.posx,self.ray.posy), GRAB_DIST)
 
