@@ -2,13 +2,9 @@ from math import atan2, pi, sin, cos
 from abc import ABC
 
 import pygame
-from pygame.event import set_blocked
 
 from .const import EPSILON, GRAB_DIST, GRAB_DIST_SQ, COLOR_PRIM
 from .ray import Ray
-
-pygame.font.init()
-font = pygame.Font()
 
 class Prim(ABC):
     def draw(self, surface:pygame.Surface) -> None:
@@ -25,7 +21,7 @@ class Prim(ABC):
         """
         ...
 
-    def touch(self, *args) -> bool:
+    def touch(self, pos:tuple[int,int]) -> bool:
         """returns True if a position is closer than GRAB_DIST to the objects stroke"""
         ...
 
@@ -35,7 +31,6 @@ class Line(Prim):
         self.ay = float(ay)
         self.bx = float(bx)
         self.by = float(by)
-
         self.pressed_a = False
         self.pressed_b = False
 
@@ -50,8 +45,8 @@ class Line(Prim):
     def handle_event(self, event:pygame.Event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
-                self.pressed_a = bool((self.ax-event.pos[0])**2 + (self.ay-event.pos[1])**2 < GRAB_DIST_SQ)
-                self.pressed_b = bool((self.bx-event.pos[0])**2 + (self.by-event.pos[1])**2 < GRAB_DIST_SQ)
+                self.pressed_a = (self.ax-event.pos[0])**2 + (self.ay-event.pos[1])**2 < GRAB_DIST_SQ
+                self.pressed_b = (self.bx-event.pos[0])**2 + (self.by-event.pos[1])**2 < GRAB_DIST_SQ
 
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
@@ -103,15 +98,8 @@ class Line(Prim):
 
         return refl_ray, distance
 
-    def touch(self, *args) -> bool:
-        if len(args) == 1:
-            posx = args[0][0]
-            posy = args[0][1]
-        elif len(args) == 2:
-            posx = args[0]
-            posy = args[1]
-        else:
-            raise NotImplementedError(f"Cant parse x,y position from {args}")
+    def touch(self, pos:tuple[int,int]) -> bool:
+        posx, posy = pos
         abx = self.bx - self.ax
         aby = self.by - self.ay
         acx = posx - self.ax
@@ -197,15 +185,8 @@ class Circle(Prim):
 
         return Ray(inter_x, inter_y, dir_x, dir_y), t
 
-    def touch(self, *args) -> bool:
-        if len(args) == 1:
-            posx = args[0][0]
-            posy = args[0][1]
-        elif len(args) == 2:
-            posx = args[0]
-            posy = args[1]
-        else:
-            raise NotImplementedError(f"Cant parse x,y position from {args}")
+    def touch(self, pos:tuple[int,int]) -> bool:
+        posx, posy = pos
         dx = posx - self.posx
         dy = posy - self.posy
         dist = (dx**2 + dy**2)**0.5
@@ -335,16 +316,8 @@ class Ellipse(Prim):
         
         return refl_ray, t
 
-    def touch(self, *args) -> bool:
-        if len(args) == 1:
-            posx = args[0][0]
-            posy = args[0][1]
-        elif len(args) == 2:
-            posx = args[0]
-            posy = args[1]
-        else:
-            raise NotImplementedError(f"Cant parse x,y position from {args}")
-
+    def touch(self, pos:tuple[int,int]) -> bool:
+        posx, posy = pos
         vx = posx - self.px
         vy = posy - self.py
         local_x = vx * cos(-self.dir) - vy * sin(-self.dir)

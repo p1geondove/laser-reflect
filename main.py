@@ -3,24 +3,24 @@ import pygame
 
 from scripts.prim import Line, Circle, Ellipse, Prim
 from scripts.laser import Laser
-from scripts.const import WIDTH, HEIGHT, MAX_BOUNCES, MAX_DISTANCE
+from scripts.const import WIDTH, HEIGHT, MAX_BOUNCES, MAX_DISTANCE, COLOR_BACKGROUND
 
 def main():
     window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SRCALPHA)
     clock = pygame.Clock()
 
     mouse_pos = 0,0
-    pretty_drawing = False
+    fancy_drawing = False
     max_bounces = 512
     max_distance = 10000
 
-    laser = Laser(100,400,0)
+    laser = Laser(100,400,0,0)
     prims:list[Prim] = [
         Ellipse(600,400,200,100,0),
         Circle(100,100,100),
         Line(309,420,331,380)
     ]
-    
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -37,7 +37,7 @@ def main():
                     pygame.quit()
                     sys.exit(0)
                 elif event.key == pygame.K_p: # toggle pretty drawing when pressing p
-                    pretty_drawing = not pretty_drawing
+                    fancy_drawing = not fancy_drawing
                 elif event.key == pygame.K_c: # add new Circle when pressing c
                     prims.append(Circle(mouse_pos[0], mouse_pos[1], 50))
                 elif event.key == pygame.K_l: # add new line when pressing l
@@ -58,13 +58,11 @@ def main():
                 max_bounces = max(1, min(MAX_BOUNCES, int(max_bounces*2**event.y)))
                 max_distance = max(100, min(MAX_DISTANCE, max_distance*2**event.y))
 
-        window.fill("grey10")
+        window.fill(COLOR_BACKGROUND)
         laser.trace(prims, max_bounces, max_distance)
-        laser.draw(window, pretty_drawing)
-
-        for p in prims:
-            p.draw(window)
-
+        laser.draw(fancy_drawing)
+        window.blit(laser.surface)
+        for p in prims: p.draw(window)
         pygame.display.flip()
         clock.tick()
         pygame.display.set_caption(f"{clock.get_fps():.0f} fps")

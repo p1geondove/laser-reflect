@@ -6,19 +6,15 @@ from scripts.const import HEIGHT, WIDTH
 
 from .ray import Ray
 from .prim import Prim
-from .const import GRAB_DIST, GRAB_DIST_SQ, COLOR_LASER, COLOR_LASER_FANCY
+from .const import COLOR_BACKGROUND, GRAB_DIST, GRAB_DIST_SQ, COLOR_LASER, COLOR_LASER_FANCY
 
 class Laser:
-    def __init__(self, *args) -> None:
-        if len(args) == 3:
-            self.ray = Ray(args[0], args[1], args[2])
-        if len(args) == 1 and isinstance(args[0], Ray):
-            self.ray = args[0]
-
+    def __init__(self, posx, posy, dirx, diry) -> None:
+        self.ray = Ray(posx, posy, dirx, diry)
         self.points:list[tuple[float,float]] = [] # list of x,y intersection points
-
         self.pressed_left = False
         self.pressed_right = False
+        self.surface = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
 
     def trace(self, elements:list[Prim], max_bounce:int=500, max_distance:int|float=100000):
         distance = 0
@@ -42,7 +38,7 @@ class Laser:
         else:
             extend_end = False
 
-        # if there arent any reflections or we hit max_bounce, extend the last ray by max_distance
+        # if there arent any reflections or we hit max_bounce, extend the last ray barely outside the screen
         if extend_end:
             end_x = ray.posx + ray.dirx * (WIDTH+HEIGHT)
             end_y = ray.posy + ray.diry * (WIDTH+HEIGHT)
@@ -67,12 +63,10 @@ class Laser:
             elif self.pressed_right:
                 self.ray.dirx = event.pos[0] - self.ray.posx
                 self.ray.diry = event.pos[1] - self.ray.posy
-                self.ray._norm()
+                self.ray.norm()
 
-    def draw(self, surface:pygame.Surface, fancy=False):
-        if len(self.points) < 2:
-            return
- 
+    def draw(self, fancy=False):
+        self.surface.fill(COLOR_BACKGROUND)
         if fancy:
             # create a seperate surface for every single line
             surfaces = []
@@ -88,13 +82,13 @@ class Laser:
                 local_by = by - py
                 pygame.draw.aaline(surf, COLOR_LASER_FANCY, (local_ax, local_ay), (local_bx, local_by))
                 surfaces.append((surf, (px, py)))
-            surface.blits(surfaces)
+            self.surface.blits(surfaces)
         else:
             # or just call aalines, wich doesnt care about alpha
-            surf = pygame.Surface(surface.size, pygame.SRCALPHA)
-            pygame.draw.aalines(surf, COLOR_LASER, False, self.points)
-            surface.blit(surf)
+            #surf = pygame.Surface(surface.size, pygame.SRCALPHA)
+            pygame.draw.aalines(self.surface, COLOR_LASER, False, self.points)
+            #self.surface.blit(surf)
 
         # position dot
-        pygame.draw.aacircle(surface, "red", (self.ray.posx,self.ray.posy), GRAB_DIST)
+        pygame.draw.aacircle(self.surface, "red", (self.ray.posx,self.ray.posy), GRAB_DIST)
 
