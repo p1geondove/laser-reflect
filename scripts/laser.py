@@ -24,7 +24,7 @@ class Laser:
 
         for _ in range(max_bounce):
             # call .reflect on each prim and filter out the ones that return None
-            refs = list(filter(lambda x:x, (e.reflect(ray) for e in elements)))
+            refs = list(filter(None, (e.reflect(ray) for e in elements)))
             # stop iterating if there arent any reflections
             if not refs: break
             # sort reflections by distance and pick the closest one

@@ -1,7 +1,7 @@
 import sys
 import pygame
 
-from scripts.prim import Line, Circle, Ellipse, Prim
+from scripts.prim import Line, Circle, Ellipse, Bezier, Prim
 from scripts.laser import Laser
 from scripts.const import WIDTH, HEIGHT, MAX_BOUNCES, MAX_DISTANCE, COLOR_BACKGROUND
 
@@ -17,8 +17,9 @@ def main():
     laser = Laser(100,400,0,0)
     prims:list[Prim] = [
         Ellipse(600,400,200,100,0),
-        Circle(100,100,100),
-        Line(309,420,331,380)
+        #Circle(100,100,100),
+        Line(309,420,331,380),
+        Bezier(100,100,200,100,200,200,100,200)
     ]
 
     while True:
