@@ -1,3 +1,4 @@
+from math import atan2, pi
 import sys
 import pygame
 
@@ -7,6 +8,8 @@ from scripts.const import WIDTH, HEIGHT, MAX_BOUNCES, MAX_DISTANCE, COLOR_BACKGR
 
 def main():
     window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SRCALPHA)
+    pygame.font.init()
+    font = pygame.font.SysFont(None, 20)
     clock = pygame.Clock()
 
     mouse_pos = 0,0
@@ -14,12 +17,12 @@ def main():
     max_bounces = 512
     max_distance = 10000
 
-    laser = Laser(100,400,0,0)
+    laser = Laser((100,400),(1,0))
     prims:list[Prim] = [
-        Ellipse(600,400,200,100,0),
-        #Circle(100,100,100),
-        Line(309,420,331,380),
-        Bezier(100,100,200,100,200,200,100,200)
+        #Ellipse((600,400),(200,100),0),
+        #Circle((100,100),100),
+        #Line((309,420),(331,380)),
+        Bezier((300,300),(400,300),(400,400),(300,400))
     ]
 
     while True:
@@ -40,11 +43,13 @@ def main():
                 elif event.key == pygame.K_p: # toggle pretty drawing when pressing p
                     fancy_drawing = not fancy_drawing
                 elif event.key == pygame.K_c: # add new Circle when pressing c
-                    prims.append(Circle(mouse_pos[0], mouse_pos[1], 50))
+                    prims.append(Circle((mouse_pos[0], mouse_pos[1]), 50))
                 elif event.key == pygame.K_l: # add new line when pressing l
-                    prims.append(Line(mouse_pos[0]-50, mouse_pos[1], mouse_pos[0]+50, mouse_pos[1]))
+                    prims.append(Line((mouse_pos[0]-50, mouse_pos[1]), (mouse_pos[0]+50, mouse_pos[1])))
                 elif event.key == pygame.K_e: # add new Ellipse
-                    prims.append(Ellipse(mouse_pos[0],mouse_pos[1],100,50,0))
+                    prims.append(Ellipse((mouse_pos[0], mouse_pos[1]), (100,50), 0))
+                elif event.key == pygame.K_b:
+                    prims.append(Bezier((100,100),(200,100),(200,200),(100,200)))
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # remove prim if middle mouse pressed
@@ -64,6 +69,10 @@ def main():
         laser.draw(fancy_drawing)
         window.blit(laser.surface)
         for p in prims: p.draw(window)
+
+        debug = font.render(f"laser angle: {laser.angle} ({atan2(laser.angle.y, laser.angle.x)*180/pi})\nlaser pos: {laser.pos}\nmax bounces: {max_bounces}\nmax distance: {max_distance}", True, "white")
+        window.blit(debug)
+
         pygame.display.flip()
         clock.tick()
         pygame.display.set_caption(f"{clock.get_fps():.0f} fps")

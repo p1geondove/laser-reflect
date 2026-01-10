@@ -329,11 +329,11 @@ class Bezier(Prim):
     def draw(self, surface:pygame.Surface):
         points = []
 
-        v1x = self.p2x - self.p1y
+        v1x = self.p2x - self.p1x
         v1y = self.p2y - self.p1y
-        v2x = self.p3x - self.p2y
+        v2x = self.p3x - self.p2x
         v2y = self.p3y - self.p2y
-        v3x = self.p4x - self.p3y
+        v3x = self.p4x - self.p3x
         v3y = self.p4y - self.p3y
 
         for t in (x/100 for x in range(101)):
@@ -370,11 +370,11 @@ class Bezier(Prim):
     def reflect(self, ray:Ray) -> None | tuple[Ray, float]:
         """ fuck i should really use Vector2 ... anyway """
         def point_at(t):
-            v1x = self.p2x - self.p1y
+            v1x = self.p2x - self.p1x
             v1y = self.p2y - self.p1y
-            v2x = self.p3x - self.p2y
+            v2x = self.p3x - self.p2x
             v2y = self.p3y - self.p2y
-            v3x = self.p4x - self.p3y
+            v3x = self.p4x - self.p3x
             v3y = self.p4y - self.p3y
 
             p1x = v1x * t + self.p1x
@@ -423,8 +423,8 @@ class Bezier(Prim):
             return -tangent_y, tangent_x
 
         best_t = None
-        best_dist = 1000
-        steps = 100
+        best_dist = MAX_DISTANCE
+        steps = 300
 
         for i in range(steps):
             t = i / (steps - 1)
@@ -433,14 +433,14 @@ class Bezier(Prim):
             to_point_y = point_y - ray.posy
             along_ray = to_point_x * ray.dirx + to_point_y * ray.diry
 
-            if 0 < along_ray < 1000:
+            if 0 < along_ray < MAX_DISTANCE:
                 closest_x = ray.posx + ray.dirx * along_ray
                 closest_y = ray.posy + ray.diry * along_ray
                 dist_to_ray_x = point_x - closest_x
                 dist_to_ray_y = point_y - closest_y
                 dist_to_ray_sq = dist_to_ray_x**2 + dist_to_ray_y**2
 
-                if dist_to_ray_sq < 1:
+                if dist_to_ray_sq < 4:
                     if along_ray < best_dist:
                         best_dist = along_ray
                         best_t = t
@@ -454,13 +454,13 @@ class Bezier(Prim):
             tangent_x, tangent_y = tangent_at(t)
             diff_x = point_x - ray.posx
             diff_y = point_y - ray.posy
-            dot = diff_x * ray.dirx + diff_y * ray.diry
+            cross = diff_x * ray.diry - diff_y * ray.dirx
 
-            if abs(dot) < 0.01:
+            if abs(cross) < 0.1:
                 break
 
             tangent_len_sq = tangent_x ** 2 + tangent_y ** 2
-            if tangent_len_sq < 0.001:
+            if tangent_len_sq < 0.01:
                 break
 
             mt = 1 - t
@@ -479,7 +479,7 @@ class Bezier(Prim):
             if abs(fp) < 0.001:
                 break
 
-            t_new = t - dot / fp
+            t_new = t - cross / fp
             t = max(0, min(1, t_new))
 
         point_x, point_y = point_at(t)
@@ -487,7 +487,7 @@ class Bezier(Prim):
         to_point_y = point_y - ray.posy
         along_ray = to_point_x * ray.dirx + to_point_y * ray.diry
 
-        if along_ray > 0:
+        if along_ray > EPSILON:
             closest_x = ray.posx + ray.dirx * along_ray
             closest_y = ray.posy + ray.diry * along_ray
             dist_to_ray_sq = (point_x - closest_x)**2 + (point_y - closest_y)**2
@@ -495,12 +495,17 @@ class Bezier(Prim):
             if dist_to_ray_sq < 1:
                 norm_x, norm_y = normal_at(t)
                 dot = norm_x * ray.dirx + norm_y * ray.diry
+
+                if dot > 0:
+                    norm_x = -norm_x
+                    norm_y = -norm_y
+                    dot = -dot
+
                 reflected_x = ray.dirx - 2 * dot * norm_x
                 reflected_y = ray.diry - 2 * dot * norm_y
 
                 new_ray = Ray(point_x, point_y, reflected_x, reflected_y)
-                dist_sq = (ray.posx - point_x)**2 + (ray.posy - point_y)**2
-                return new_ray, dist_sq ** 0.5
+                return new_ray, along_ray
 
     def touch(self, pos: tuple[int, int]) -> bool:
         ...

@@ -13,4 +13,4 @@ MAX_DISTANCE = 10**10
 COLOR_BACKGROUND = pygame.Color("grey10")
 COLOR_PRIM = pygame.Color("white")
 COLOR_LASER = pygame.Color("white")
-COLOR_LASER_FANCY = pygame.Color(255,255,255,10)
+COLOR_LASER_FANCY = pygame.Color(10,10,10)
