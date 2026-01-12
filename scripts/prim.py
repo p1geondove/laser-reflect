@@ -362,15 +362,26 @@ class Arc(Prim):
         color = const.COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (const.COLOR_PRIM_HOVERED if self.hovered else const.COLOR_PRIM)
         steps = 100
         points = []
+        cos_a = math.cos(self.angle)
+        sin_a = math.sin(self.angle)
 
         for i in range(steps + 1):
             t = self.start + (self.end - self.start) * i / steps
-            # Parametric equations for an ellipse, with rotation
-            x = self.radius.x * math.cos(t) * math.cos(self.angle) - self.radius.y * math.sin(t) * math.sin(self.angle)
-            y = self.radius.x * math.cos(t) * math.sin(self.angle) + self.radius.y * math.sin(t) * math.cos(self.angle)
+            cos_t = math.cos(t)
+            sin_t = math.sin(t)
+            x = self.radius.x * cos_t * cos_a - self.radius.y * sin_t * sin_a
+            y = self.radius.x * cos_t * sin_a + self.radius.y * sin_t * cos_a
             points.append((self.pos.x + x, self.pos.y + y))
         
         pygame.draw.aalines(surface, color, False, points)
+
+        if const.DRAW_MANIP:
+            x1 = self.radius.x * math.cos(self.start) * cos_a - self.radius.y * math.sin(self.start) * sin_a + self.pos.x
+            y1 = self.radius.x * math.cos(self.start) * sin_a + self.radius.y * math.sin(self.start) * cos_a + self.pos.y
+            x2 = self.radius.x * math.cos(self.end) * cos_a - self.radius.y * math.sin(self.end) * sin_a + self.pos.x
+            y2 = self.radius.x * math.cos(self.end) * sin_a + self.radius.y * math.sin(self.end) * cos_a + self.pos.y
+            pygame.draw.aacircle(surface, "grey50", (x1,y1), 5)
+            pygame.draw.aacircle(surface, "grey50", (x2,y2), 5)
 
     def handle_event(self, event: pygame.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN:
