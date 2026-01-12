@@ -40,8 +40,8 @@ def main():
         Arc((200,200),(150,100),0,math.pi/2,0)
     ]
 
-    trace_flag = False
-    laser.trace(prims)
+    trace_flag = True
+    draw_flag = True
 
     while True:
         for event in pygame.event.get():
@@ -82,7 +82,7 @@ def main():
                 
                 elif event.key == pygame.K_m:
                     const.DRAW_MANIP = not const.DRAW_MANIP
-                    trace_flag = True
+                    draw_flag = True
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # remove prim if middle mouse pressed:
@@ -94,7 +94,7 @@ def main():
 
             elif event.type == pygame.MOUSEMOTION:
                 mouse_pos = pygame.Vector2(event.pos)
-                trace_flag = True
+                draw_flag = True
 
             elif event.type == pygame.MOUSEWHEEL:
                 max_bounces = max(1, min(const.MAX_BOUNCES, int(max_bounces*2**event.y)))
@@ -111,6 +111,9 @@ def main():
         if trace_flag:
             laser.trace(prims, max_bounces, max_distance)
             trace_flag = False
+            draw_flag = True
+        
+        if draw_flag:
             window.fill(const.COLOR_BACKGROUND)
             laser.draw(fancy_drawing)
             window.blit(laser.surface)
@@ -118,6 +121,7 @@ def main():
             info_text = f"reflections: {len(laser.points)-2}\nmax reflections: {max_bounces}\ndistance: {laser.distance}\nmax length: {max_distance}\namount elements: {len(prims)}"
             info_surf = font.render(info_text, True, "grey50")
             window.blit(info_surf)
+            draw_flag = False
 
         pygame.display.flip()
         clock.tick(60)
