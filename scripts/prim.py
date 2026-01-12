@@ -6,7 +6,6 @@ from pygame import Vector2
 
 from .const import *
 from .ray import Ray
-from .ntimer import timer
 
 class Prim(ABC):
     def draw(self, surface:pygame.Surface) -> None:
@@ -348,8 +347,12 @@ class Bezier(Prim):
                     self.pos[i] += event.rel
             if not any(self.hovered):
                 self.hovered_stroke = self.touch(event.pos)
-
+            if self.pressed_stroke:
+                for p in self.pos:
+                    p+=event.rel
+                    
         elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.pressed_stroke = self.hovered_stroke
             for i, h in enumerate(self.hovered):
                 if h:
                     self.pressed[i] = True
@@ -357,6 +360,7 @@ class Bezier(Prim):
 
         elif event.type == pygame.MOUSEBUTTONUP:
             self.pressed = [False] * 4
+            self.pressed_stroke = False
 
     def normal_at(self, t: float):
         t = max(0, min(1, t))
