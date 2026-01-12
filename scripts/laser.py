@@ -44,7 +44,7 @@ class Laser:
 
         # if there arent any reflections or we hit max_bounce, extend the last ray barely outside the screen
         if extend_end:
-            self.points.append(ray.pos + ray.dir * (WIDTH+HEIGHT))
+            self.points.append(ray.pos + ray.angle * (WIDTH+HEIGHT))
 
     def handle_event(self, event:pygame.Event):
         if event.type == pygame.MOUSEBUTTONDOWN:

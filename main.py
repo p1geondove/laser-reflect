@@ -1,4 +1,3 @@
-from math import atan2, pi
 import sys
 import pygame
 
@@ -22,7 +21,7 @@ def main():
         #Ellipse((600,400),(200,100),0),
         #Circle((100,100),100),
         #Line((309,420),(331,380)),
-        Bezier((300,300),(400,300),(400,400),(300,450))
+        Bezier(((300,300),(400,300),(400,400),(300,450)))
     ]
 
     while True:
@@ -50,7 +49,7 @@ def main():
                     prims.append(Ellipse((mouse_pos.x, mouse_pos.y), (100,50), 0))
                 elif event.key == pygame.K_b: # add new Bezier when pressing b
                     points = [mouse_pos+p for p in ((-50,-50),(50,-50),(50,50),(-50,50))]
-                    prims.append(Bezier(*points))
+                    prims.append(Bezier(points))
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # remove prim if middle mouse pressed:

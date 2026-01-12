@@ -11,6 +11,8 @@ MAX_BOUNCES = 2**20
 MAX_DISTANCE = 10**10
 
 COLOR_BACKGROUND = pygame.Color("grey10")
-COLOR_PRIM = pygame.Color("white")
+COLOR_PRIM = pygame.Color("grey30")
+COLOR_PRIM_HOVERED = pygame.Color("grey50")
+COLOR_PRIM_DRAGGED = pygame.Color("white")
 COLOR_LASER = pygame.Color("white")
 COLOR_LASER_FANCY = pygame.Color(10,10,10)
