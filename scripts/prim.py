@@ -4,7 +4,8 @@ from abc import ABC
 import pygame
 from pygame import Vector2
 
-from .const import *
+# from .const import *
+from . import const
 from .ray import Ray
 
 class Prim(ABC):
@@ -44,15 +45,16 @@ class Line(Prim):
 
     def __repr__(self):
         fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
-        vals = ", ".join(map(fs, (self.p1.x, self.p1.y, self.p2.x, self.p2.y)))
-        return "Line<"+vals+">"
+        fv = lambda v: f"{fs(v.x)}|{fs(v.y)}"
+        return f"Line<{fv(self.p1)} {fv(self.p2)}>"
 
     def draw(self, surface:pygame.Surface):
-        for p, pr, hv in zip((self.p1, self.p2), (self.pressed_a, self.pressed_b), (self.hovered_a, self.hovered_b)):
-            color = COLOR_PRIM_DRAGGED if pr else (COLOR_PRIM_HOVERED if hv else COLOR_PRIM)
-            pygame.draw.aacircle(surface, color, p, GRAB_DIST)
+        if const.DRAW_MANIP:
+            for p, pr, hv in zip((self.p1, self.p2), (self.pressed_a, self.pressed_b), (self.hovered_a, self.hovered_b)):
+                color = const.COLOR_PRIM_DRAGGED if pr else (const.COLOR_PRIM_HOVERED if hv else const.COLOR_PRIM)
+                pygame.draw.aacircle(surface, color, p, const.GRAB_DIST)
 
-        color = COLOR_PRIM_DRAGGED if self.pressed else (COLOR_PRIM_HOVERED if self.hovered else COLOR_PRIM)
+        color = const.COLOR_PRIM_DRAGGED if self.pressed else (const.COLOR_PRIM_HOVERED if self.hovered else const.COLOR_PRIM)
         pygame.draw.aaline(surface, color, self.p1, self.p2)
 
     def handle_event(self, event:pygame.Event) -> bool:
@@ -69,8 +71,8 @@ class Line(Prim):
                 self.pressed_b = False
 
         elif event.type == pygame.MOUSEMOTION:
-            self.hovered_a = self.p1.distance_squared_to(event.pos) < GRAB_DIST_SQ
-            self.hovered_b = self.p2.distance_squared_to(event.pos) < GRAB_DIST_SQ
+            self.hovered_a = self.p1.distance_squared_to(event.pos) < const.GRAB_DIST_SQ
+            self.hovered_b = self.p2.distance_squared_to(event.pos) < const.GRAB_DIST_SQ
             if not any((self.hovered_a, self.hovered_b)):
                 self.hovered = self.touch(event.pos)
 
@@ -88,27 +90,28 @@ class Line(Prim):
         return False
 
     def reflect(self, ray: Ray) -> None | tuple[Ray, float]:
-        delta_points = self.p2 - self.p1
-        denom = delta_points.cross(ray.angle)
+        diff1 = self.p2 - self.p1
+        denom = diff1.cross(ray.angle)
 
-        if abs(denom) < EPSILON:
+        if abs(denom) < const.EPSILON:
             return
 
-        delta_ray = ray.pos - self.p1
-        t = delta_ray.cross(ray.angle) / denom
-        s = delta_ray.cross(delta_points) / denom
+        diff2 = ray.pos - self.p1
+        t = diff2.cross(ray.angle) / denom
+        s = diff2.cross(diff1) / denom
 
-        if t < EPSILON or t > 1 or s < EPSILON:
+        if t < const.EPSILON or t > 1 or s < const.EPSILON:
             return
-        hit_pos = self.p1 + t * delta_points
-        norm = Vector2(-delta_points.y, delta_points.x).normalize()
+        
+        hit_pos = self.p1 + t * diff1
+        norm = Vector2(-diff1.y, diff1.x).normalize()
         dot = ray.angle.dot(norm)
 
         if dot > 0:
             norm = -norm
             dot = -dot
 
-        refl_dir = ray.angle - 2 * dot * norm
+        refl_dir = ray.angle.reflect(norm)
         refl_ray = Ray(hit_pos, refl_dir)
         distance = s * ray.angle.magnitude()
 
@@ -124,7 +127,7 @@ class Line(Prim):
         t = max(0, min(1, t))
         close = self.p1 + t * ab
         delta = pos - close
-        return delta.magnitude_squared() < GRAB_DIST_SQ
+        return delta.magnitude_squared() < const.GRAB_DIST_SQ
 
 class Circle(Prim):
     def __init__(self, pos:Vector2|tuple, r:int|float) -> None:
@@ -136,11 +139,11 @@ class Circle(Prim):
 
     def __repr__(self) -> str:
         fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
-        vals = ", ".join(map(fs, (self.pos.x, self.pos.y, self.radius)))
-        return "Circle<"+vals+">"
+        fv = lambda v: f"{fs(v.x)}|{fs(v.y)}"
+        return f"Circle<{fv(self.pos)} {fs(self.radius)}>"
 
     def draw(self, surface: pygame.Surface) -> None:
-        color = COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (COLOR_PRIM_HOVERED if self.hovered else COLOR_PRIM)
+        color = const.COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (const.COLOR_PRIM_HOVERED if self.hovered else const.COLOR_PRIM)
         pygame.draw.aacircle(surface, color, self.pos, self.radius, 1)
 
     def handle_event(self, event: pygame.Event) -> bool:
@@ -182,23 +185,20 @@ class Circle(Prim):
         t1 = (-b - disc_sq) / (2 * a)
         t2 = (-b + disc_sq) / (2 * a)
 
-        if t1 > EPSILON:
+        if t1 > const.EPSILON:
             t = t1
-        elif t2 > EPSILON:
+        elif t2 > const.EPSILON:
             t = t2
         else:
             return
 
         inter = ray.pos + ray.angle * t
         norm = inter - self.pos
-        dot = ray.angle.dot(norm)
-        mag = norm.magnitude_squared()
-        dir = ray.angle - 2 * (dot / mag) * norm
-
+        dir = ray.angle.reflect(norm)
         return Ray(inter, dir), t
 
     def touch(self, pos:Vector2|tuple) -> bool:
-        return abs(self.pos.distance_to(pos) - self.radius) < GRAB_DIST
+        return abs(self.pos.distance_to(pos) - self.radius) < const.GRAB_DIST
 
 class Ellipse(Prim):
     def __init__(self, pos:Vector2|tuple, radius:Vector2|tuple, angle:float|int) -> None:
@@ -212,8 +212,8 @@ class Ellipse(Prim):
 
     def __repr__(self) -> str:
         fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
-        vals = ", ".join(map(fs, (self.pos.x, self.pos.y, self.radius.x, self.radius.y, self.angle)))
-        return "Ellipse<"+vals+">"
+        fv = lambda v: f"{fs(v.x)}|{fs(v.y)}"
+        return f"Ellipse<p:{fv(self.pos)} r:{fv(self.radius)} a:{fs(self.radius)}>"
 
     def draw(self, surface: pygame.Surface) -> None:
         points = []
@@ -227,7 +227,8 @@ class Ellipse(Prim):
             pos = self.radius.elementwise() * angle
             pos = Vector2(pos.cross(rot), pos.dot(rot)) + self.pos 
             points.append(pos)
-        color = COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (COLOR_PRIM_HOVERED if self.hovered else COLOR_PRIM)
+
+        color = const.COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (const.COLOR_PRIM_HOVERED if self.hovered else const.COLOR_PRIM)
         pygame.draw.aalines(surface, color, False, points)
 
     def handle_event(self, event: pygame.Event) -> bool:
@@ -292,9 +293,9 @@ class Ellipse(Prim):
         t1 = (-B - disc_sq) / (2 * A)
         t2 = (-B + disc_sq) / (2 * A)
 
-        if t1 > EPSILON:
+        if t1 > const.EPSILON:
             t = t1
-        elif t2 > EPSILON:
+        elif t2 > const.EPSILON:
             t = t2
         else:
             return None
@@ -324,11 +325,11 @@ class Ellipse(Prim):
         local = delta.reflect(ang)
         norm_dist = (local.elementwise() / self.radius).magnitude()
 
-        if norm_dist < EPSILON:
+        if norm_dist < const.EPSILON:
             return False
 
         dist = abs(norm_dist-1) * min(self.radius)
-        return dist < GRAB_DIST
+        return dist < const.GRAB_DIST
 
 class Arc(Prim):
     def __init__(self, pos:Vector2|tuple, radius:Vector2|tuple|float, start:float, end:float, angle:float):
@@ -336,6 +337,11 @@ class Arc(Prim):
         self.start = float(start)
         self.end = float(end)
         self.angle = float(angle)
+
+        if isinstance(radius, Vector2|tuple):
+            self.radius = Vector2(radius)
+        else:
+            self.radius = Vector2(radius, radius)
 
         self.pressed_left = False
         self.pressed_right = False
@@ -346,26 +352,21 @@ class Arc(Prim):
         self.hovered_p1 = False
         self.hovered_p2 = False
         self.hovered = False
-
-        if isinstance(radius, Vector2|tuple):
-            self.radius = Vector2(radius)
-        else:
-            self.radius = Vector2(radius, radius)
     
     def __repr__(self) -> str:
         fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
-        vals = ", ".join(map(fs, (self.pos.x, self.pos.y, self.radius.x, self.radius.y, self.angle)))
-        return "Arc<"+vals+">"   
+        fv = lambda v: f"{fs(v.x)}|{fs(v.y)}"
+        return f"Arc<p:{fv(self.pos)} r:{fv(self.radius)} a:{fv(Vector2(self.start,self.end))} d:{fs(self.angle)}>"
 
     def draw(self, surface):
-        color = COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (COLOR_PRIM_HOVERED if self.hovered else COLOR_PRIM)
+        color = const.COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (const.COLOR_PRIM_HOVERED if self.hovered else const.COLOR_PRIM)
         steps = 100
         points = []
 
         for i in range(steps + 1):
             t = self.start + (self.end - self.start) * i / steps
             # Parametric equations for an ellipse, with rotation
-            x = self.radius.x * math.cos(t) * math.cos(self.angle) + self.radius.y * math.sin(t) * math.sin(self.angle)
+            x = self.radius.x * math.cos(t) * math.cos(self.angle) - self.radius.y * math.sin(t) * math.sin(self.angle)
             y = self.radius.x * math.cos(t) * math.sin(self.angle) + self.radius.y * math.sin(t) * math.cos(self.angle)
             points.append((self.pos.x + x, self.pos.y + y))
         
@@ -400,6 +401,72 @@ class Arc(Prim):
 
         return False
     
+    def reflect(self, ray: Ray) -> None | tuple[Ray, float]:
+        # 1. Algebraic Intersection with the full circle
+        # Ray equation: P = ray.pos + t * ray.angle
+        # Circle equation: |P - self.pos|^2 = r^2
+        
+        radius = self.radius.x  # Assuming circular arc for algebraic simplicity
+        diff = ray.pos - self.pos
+        
+        # Quadratic coefficients: at^2 + bt + c = 0
+        # Since ray.angle is usually normalized, a = ray.angle.magnitude_squared()
+        a = ray.angle.magnitude_squared()
+        b = 2 * diff.dot(ray.angle)
+        c = diff.magnitude_squared() - radius**2
+        
+        discriminant = b**2 - 4 * a * c
+        
+        if discriminant < 0:
+            return None
+
+        # Solve for t (distance)
+        sqrt_disc = math.sqrt(discriminant)
+        t1 = (-b - sqrt_disc) / (2 * a)
+        t2 = (-b + sqrt_disc) / (2 * a)
+
+        # Check the closest valid t (must be > EPSILON)
+        for t in [t1, t2]:
+            if t < const.EPSILON:
+                continue
+                
+            # 2. Calculate Hit Position
+            hit_pos = ray.pos + ray.angle * t
+            
+            # 3. Check if hit_pos is within the Arc's angular span
+            # Calculate angle of hit point relative to arc center
+            relative_vec = hit_pos - self.pos
+            # get_angle returns angle in degrees between -180 and 180
+            # We use math.atan2 for radians or Vector2.as_polar()
+            _, hit_angle_deg = relative_vec.as_polar()
+            
+            # Normalize angles to [0, 360] for consistent comparison
+            # Note: self.angle likely shifts the entire arc's orientation
+            start_angle = (self.start + self.angle) % 360
+            end_angle = (self.end + self.angle) % 360
+            test_angle = hit_angle_deg % 360
+
+            # Handle the wrap-around case (e.g., start at 350, end at 10)
+            is_inside = False
+            if start_angle <= end_angle:
+                is_inside = start_angle <= test_angle <= end_angle
+            else:
+                is_inside = test_angle >= start_angle or test_angle <= end_angle
+
+            if is_inside:
+                # 4. Calculate Reflection
+                # The normal of a circle at any point is the vector from the center
+                normal = relative_vec.normalize()
+                
+                # Ensure the normal faces against the ray (double-sided reflection)
+                if ray.angle.dot(normal) > 0:
+                    normal = -normal
+
+                refl_dir = ray.angle.reflect(normal)
+                return Ray(hit_pos, refl_dir), t
+
+        return None
+
     def touch(self, pos) -> bool:
         """ USES APPROXIMATION """
         def point_to_segment_sq(pt:Vector2, seg_a:Vector2, seg_b:Vector2):
@@ -434,7 +501,7 @@ class Arc(Prim):
                 self.radius.x * cos_t * sin_d + self.radius.y * sin_t * cos_d
             ) + self.pos
 
-            if point_to_segment_sq(pos, prev_p, p) < GRAB_DIST_SQ:
+            if point_to_segment_sq(pos, prev_p, p) < const.GRAB_DIST_SQ:
                 return True
                 
             prev_p = p
@@ -449,6 +516,12 @@ class Bezier(Prim):
         self.pressed_stroke = False
         self.hovered_stroke = False
 
+    def __repr__(self) -> str:
+        fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
+        fv = lambda v: f"{fs(v.x)}|{fs(v.y)}"
+        vals = " ".join(map(fv, self.pos))
+        return "Bezier<"+vals+">"   
+
     def point_at(self, t:float):
         # Using Bernstein basis for stability in point_at
         t2 = t * t
@@ -462,16 +535,16 @@ class Bezier(Prim):
                 self.pos[3] * t3)
 
     def draw(self, surface: pygame.Surface):
-        for a, b in zip(self.pos, self.pos[1:]):
-            pygame.draw.aaline(surface, "grey20", a, b)
-
         points = [self.point_at(t / 99) for t in range(100)]
-        color = COLOR_PRIM_DRAGGED if self.pressed_stroke else (COLOR_PRIM_HOVERED if self.hovered_stroke else COLOR_PRIM)
+        color = const.COLOR_PRIM_DRAGGED if self.pressed_stroke else (const.COLOR_PRIM_HOVERED if self.hovered_stroke else const.COLOR_PRIM)
         pygame.draw.aalines(surface, color, False, points)
 
-        for p, pr, hv in zip(self.pos, self.pressed, self.hovered):
-            color = COLOR_PRIM_DRAGGED if pr else (COLOR_PRIM_HOVERED if hv else COLOR_PRIM)
-            pygame.draw.circle(surface, color, p, GRAB_DIST)
+        if const.DRAW_MANIP:
+            for a, b in zip(self.pos, self.pos[1:]):
+                pygame.draw.aaline(surface, "grey20", a, b)
+            for p, pr, hv in zip(self.pos, self.pressed, self.hovered):
+                color = const.COLOR_PRIM_DRAGGED if pr else (const.COLOR_PRIM_HOVERED if hv else const.COLOR_PRIM)
+                pygame.draw.circle(surface, color, p, const.GRAB_DIST)
     
     def handle_event(self, event: pygame.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -487,7 +560,7 @@ class Bezier(Prim):
         
         elif event.type == pygame.MOUSEMOTION:
             for i, p in enumerate(self.pos):
-                self.hovered[i] = p.distance_to(event.pos) < GRAB_DIST
+                self.hovered[i] = p.distance_to(event.pos) < const.GRAB_DIST
                 if self.pressed[i]:
                     self.pos[i] += event.rel
                     return True
@@ -648,4 +721,4 @@ class Bezier(Prim):
                 min_dist_sq = d_high
                 search_t = t_high
 
-        return min_dist_sq < GRAB_DIST_SQ
+        return min_dist_sq < const.GRAB_DIST_SQ

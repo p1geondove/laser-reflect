@@ -16,3 +16,5 @@ COLOR_PRIM_HOVERED = pygame.Color("grey50")
 COLOR_PRIM_DRAGGED = pygame.Color("white")
 COLOR_LASER = pygame.Color("white")
 COLOR_LASER_FANCY = pygame.Color(10,10,10)
+
+DRAW_MANIP:bool = False

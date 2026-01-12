@@ -19,9 +19,10 @@ class Laser:
         self.pressed_left = False
         self.pressed_right = False
         self.surface = pygame.Surface((WIDTH,HEIGHT), pygame.SRCALPHA)
+        self.distance = 0.
 
     def trace(self, elements:list[Prim], max_bounce:int=MAX_BOUNCES, max_distance:int|float=MAX_DISTANCE):
-        distance = 0
+        self.distance = 0
         ray = Ray(self.pos, self.angle)
         self.points = [self.pos]
         extend_end = True
@@ -33,10 +34,10 @@ class Laser:
             if not refs: break
             # sort reflections by distance and pick the closest one
             ray, dist = sorted(refs, key=lambda x:x[1])[0]
-            distance += dist
+            self.distance += dist
             self.points.append(ray.pos)
 
-            if distance > max_distance:
+            if self.distance > max_distance:
                 extend_end = False
                 break
         else:
@@ -87,4 +88,3 @@ class Laser:
 
         # position dot
         pygame.draw.aacircle(self.surface, "red", self.pos, GRAB_DIST)
-
