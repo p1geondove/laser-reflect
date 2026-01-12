@@ -66,12 +66,14 @@ class Laser:
 
             if self.pressed_left:
                 self.pos += event.rel
+                return True
             elif self.pressed_right:
                 self.angle = Vector2(event.pos) - self.pos
                 if self.angle.magnitude_squared():
                     self.angle.normalize_ip()
                 else:
                     self.angle = Vector2(1,0)
+                return True
 
     def draw(self, fancy=False):
         self.surface.fill(COLOR_BACKGROUND)
