@@ -110,7 +110,7 @@ class Line(Prim):
 
         refl_dir = ray.angle - 2 * dot * norm
         refl_ray = Ray(hit_pos, refl_dir)
-        distance = s * ray.angle.length()
+        distance = s * ray.angle.magnitude()
 
         return refl_ray, distance
 
@@ -119,12 +119,12 @@ class Line(Prim):
         ab = self.p2 - self.p1
         ac = pos - self.p1
         dot = ac.dot(ab)
-        ab_dist = ab.length_squared()
+        ab_dist = ab.magnitude_squared()
         t = dot / ab_dist if ab_dist else 0
         t = max(0, min(1, t))
         close = self.p1 + t * ab
         delta = pos - close
-        return delta.length_squared() < GRAB_DIST_SQ
+        return delta.magnitude_squared() < GRAB_DIST_SQ
 
 class Circle(Prim):
     def __init__(self, pos:Vector2|tuple, r:int|float) -> None:
@@ -172,7 +172,7 @@ class Circle(Prim):
         diff = ray.pos - self.pos
         a = 1
         b = 2 * diff.dot(ray.angle)
-        c = diff.length_squared() - self.radius**2
+        c = diff.magnitude_squared() - self.radius**2
         disc = b**2 - 4*a*c
 
         if disc < 0:
@@ -192,14 +192,13 @@ class Circle(Prim):
         inter = ray.pos + ray.angle * t
         norm = inter - self.pos
         dot = ray.angle.dot(norm)
-        mag = norm.length_squared()
+        mag = norm.magnitude_squared()
         dir = ray.angle - 2 * (dot / mag) * norm
 
         return Ray(inter, dir), t
 
     def touch(self, pos:Vector2|tuple) -> bool:
-        delta = Vector2(pos) - self.pos
-        return abs(delta.length() - self.radius) < GRAB_DIST
+        return abs(self.pos.distance_to(pos) - self.radius) < GRAB_DIST
 
 class Ellipse(Prim):
     def __init__(self, pos:Vector2|tuple, radius:Vector2|tuple, angle:float|int) -> None:
