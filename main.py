@@ -12,7 +12,7 @@ def main():
     font = pygame.font.SysFont(None, 20)
     clock = pygame.Clock()
 
-    mouse_pos = 0,0
+    mouse_pos = pygame.Vector2()
     fancy_drawing = False
     max_bounces = 512
     max_distance = 10000
@@ -22,7 +22,7 @@ def main():
         #Ellipse((600,400),(200,100),0),
         #Circle((100,100),100),
         #Line((309,420),(331,380)),
-        Bezier((300,300),(400,300),(400,400),(300,400))
+        Bezier((300,300),(400,300),(400,400),(300,450))
     ]
 
     while True:
@@ -43,22 +43,23 @@ def main():
                 elif event.key == pygame.K_p: # toggle pretty drawing when pressing p
                     fancy_drawing = not fancy_drawing
                 elif event.key == pygame.K_c: # add new Circle when pressing c
-                    prims.append(Circle((mouse_pos[0], mouse_pos[1]), 50))
-                elif event.key == pygame.K_l: # add new line when pressing l
-                    prims.append(Line((mouse_pos[0]-50, mouse_pos[1]), (mouse_pos[0]+50, mouse_pos[1])))
+                    prims.append(Circle((mouse_pos.x, mouse_pos.y), 50))
+                elif event.key == pygame.K_l: # add new Line when pressing l
+                    prims.append(Line((mouse_pos.x-50, mouse_pos.y), (mouse_pos.x+50, mouse_pos.y)))
                 elif event.key == pygame.K_e: # add new Ellipse
-                    prims.append(Ellipse((mouse_pos[0], mouse_pos[1]), (100,50), 0))
-                elif event.key == pygame.K_b:
-                    prims.append(Bezier((100,100),(200,100),(200,200),(100,200)))
+                    prims.append(Ellipse((mouse_pos.x, mouse_pos.y), (100,50), 0))
+                elif event.key == pygame.K_b: # add new Bezier when pressing b
+                    points = [mouse_pos+p for p in ((-50,-50),(50,-50),(50,50),(-50,50))]
+                    prims.append(Bezier(*points))
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                # remove prim if middle mouse pressed
+                # remove prim if middle mouse pressed:
                 if event.button == 2:
                     for p,t in zip(prims, (p.touch(mouse_pos) for p in prims)):
                         if t: prims.remove(p)
 
             elif event.type == pygame.MOUSEMOTION:
-                mouse_pos = event.pos
+                mouse_pos = pygame.Vector2(event.pos)
 
             elif event.type == pygame.MOUSEWHEEL:
                 max_bounces = max(1, min(MAX_BOUNCES, int(max_bounces*2**event.y)))
@@ -69,10 +70,6 @@ def main():
         laser.draw(fancy_drawing)
         window.blit(laser.surface)
         for p in prims: p.draw(window)
-
-        debug = font.render(f"laser angle: {laser.angle} ({atan2(laser.angle.y, laser.angle.x)*180/pi})\nlaser pos: {laser.pos}\nmax bounces: {max_bounces}\nmax distance: {max_distance}", True, "white")
-        window.blit(debug)
-
         pygame.display.flip()
         clock.tick()
         pygame.display.set_caption(f"{clock.get_fps():.0f} fps")

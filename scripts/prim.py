@@ -22,7 +22,7 @@ class Prim(ABC):
         """
         ...
 
-    def touch(self, pos:tuple[int,int]) -> bool:
+    def touch(self, pos:Vector2|tuple) -> bool:
         """returns True if a position is closer than GRAB_DIST to the objects stroke"""
         ...
 
@@ -292,7 +292,7 @@ class Ellipse(Prim):
 
         return refl_ray, t
 
-    def touch(self, pos:tuple[int,int]) -> bool:
+    def touch(self, pos:Vector2|tuple) -> bool:
         delta = Vector2(pos) - self.pos
         ang = Vector2(sin(-self.angle), cos(-self.angle))
         local = delta.reflect(ang)
