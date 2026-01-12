@@ -10,3 +10,4 @@ dist/
 pyproject.toml
 uv.lock
 main.spec
+ntimer.py
