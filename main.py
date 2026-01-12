@@ -1,9 +1,8 @@
 import sys
 import pygame
 
-from scripts.prim import Line, Circle, Ellipse, Bezier, Prim
+from scripts.prim import *
 from scripts.laser import Laser
-from scripts.const import WIDTH, HEIGHT, MAX_BOUNCES, MAX_DISTANCE, COLOR_BACKGROUND
 
 def main():
     window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -18,10 +17,11 @@ def main():
 
     laser = Laser((100,400),(1,0))
     prims:list[Prim] = [
-        #Ellipse((600,400),(200,100),0),
-        #Circle((100,100),100),
-        #Line((309,420),(331,380)),
-        Bezier(((300,300),(400,300),(400,400),(300,450)))
+        # Ellipse((600,400),(200,100),0),
+        # Circle((100,100),100),
+        # Line((309,420),(331,380)),
+        # Bezier(((300,300),(400,300),(400,400),(300,450))),
+        Arc((200,200),(100,100),0,math.pi/2,math.pi/4)
     ]
 
     while True:
@@ -39,17 +39,19 @@ def main():
                 if event.key == pygame.K_ESCAPE: # exit when pressing Esc
                     pygame.quit()
                     sys.exit(0)
-                elif event.key == pygame.K_p: # toggle pretty drawing when pressing p
-                    fancy_drawing = not fancy_drawing
-                elif event.key == pygame.K_c: # add new Circle when pressing c
-                    prims.append(Circle((mouse_pos.x, mouse_pos.y), 50))
-                elif event.key == pygame.K_l: # add new Line when pressing l
-                    prims.append(Line((mouse_pos.x-50, mouse_pos.y), (mouse_pos.x+50, mouse_pos.y)))
-                elif event.key == pygame.K_e: # add new Ellipse
-                    prims.append(Ellipse((mouse_pos.x, mouse_pos.y), (100,50), 0))
+                elif event.key == pygame.K_a: # add new Arc when pressing a
+                    prims.append(Arc(mouse_pos,(100,50),0,math.pi/2,math.pi/4))
                 elif event.key == pygame.K_b: # add new Bezier when pressing b
                     points = [mouse_pos+p for p in ((-50,-50),(50,-50),(50,50),(-50,50))]
                     prims.append(Bezier(points))
+                elif event.key == pygame.K_c: # add new Circle when pressing c
+                    prims.append(Circle((mouse_pos.x, mouse_pos.y), 50))
+                elif event.key == pygame.K_e: # add new Ellipse when pressing e
+                    prims.append(Ellipse((mouse_pos.x, mouse_pos.y), (100,50), 0))
+                elif event.key == pygame.K_l: # add new Line when pressing l
+                    prims.append(Line((mouse_pos.x-50, mouse_pos.y), (mouse_pos.x+50, mouse_pos.y)))
+                elif event.key == pygame.K_p: # toggle pretty drawing when pressing p
+                    fancy_drawing = not fancy_drawing
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # remove prim if middle mouse pressed:
@@ -75,3 +77,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # from scripts import svg_parser

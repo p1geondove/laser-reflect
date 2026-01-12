@@ -8,11 +8,16 @@ from .const import *
 from .ray import Ray
 
 class Prim(ABC):
+    def __repr__(self) -> str:
+        """ prims must always have a repr"""
+        ...
+
     def draw(self, surface:pygame.Surface) -> None:
         """drawing the thing onto a surface"""
 
-    def handle_event(self, event:pygame.Event) -> None:
+    def handle_event(self, event:pygame.Event) -> bool:
         """for making the thing interactive"""
+        return False
 
     def reflect(self, ray:Ray) -> None | tuple[Ray, float]:
         """ 
@@ -40,7 +45,7 @@ class Line(Prim):
     def __repr__(self):
         fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
         vals = ", ".join(map(fs, (self.p1.x, self.p1.y, self.p2.x, self.p2.y)))
-        return "Line("+vals+")"
+        return "Line<"+vals+">"
 
     def draw(self, surface:pygame.Surface):
         for p, pr, hv in zip((self.p1, self.p2), (self.pressed_a, self.pressed_b), (self.hovered_a, self.hovered_b)):
@@ -50,7 +55,7 @@ class Line(Prim):
         color = COLOR_PRIM_DRAGGED if self.pressed else (COLOR_PRIM_HOVERED if self.hovered else COLOR_PRIM)
         pygame.draw.aaline(surface, color, self.p1, self.p2)
 
-    def handle_event(self, event:pygame.Event):
+    def handle_event(self, event:pygame.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 self.pressed = self.hovered
@@ -72,10 +77,15 @@ class Line(Prim):
             if self.pressed:
                 self.p1 += Vector2(event.rel)
                 self.p2 += Vector2(event.rel)
+                return True
             elif self.pressed_a:
                 self.p1 += Vector2(event.rel)
+                return True
             elif self.pressed_b:
                 self.p2 += Vector2(event.rel)
+                return True
+
+        return False
 
     def reflect(self, ray: Ray) -> None | tuple[Ray, float]:
         delta_points = self.p2 - self.p1
@@ -127,13 +137,13 @@ class Circle(Prim):
     def __repr__(self) -> str:
         fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
         vals = ", ".join(map(fs, (self.pos.x, self.pos.y, self.radius)))
-        return "Circle("+vals+")"
+        return "Circle<"+vals+">"
 
     def draw(self, surface: pygame.Surface) -> None:
         color = COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (COLOR_PRIM_HOVERED if self.hovered else COLOR_PRIM)
         pygame.draw.aacircle(surface, color, self.pos, self.radius, 1)
 
-    def handle_event(self, event: pygame.Event) -> None:
+    def handle_event(self, event: pygame.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and self.hovered:
             if event.button == 1:
                 self.pressed_left = True
@@ -151,8 +161,12 @@ class Circle(Prim):
 
             if self.pressed_left:
                 self.pos += Vector2(event.rel)
+                return True
             if self.pressed_right:
                 self.radius = self.pos.distance_to(event.pos)
+                return True
+            
+        return False
 
     def reflect(self, ray: Ray) -> None | tuple[Ray, float]:
         diff = ray.pos - self.pos
@@ -191,11 +205,16 @@ class Ellipse(Prim):
     def __init__(self, pos:Vector2|tuple, radius:Vector2|tuple, angle:float|int) -> None:
         self.pos = Vector2(pos)
         self.radius = Vector2(radius)
-        self.angle = float(angle)
+        self.angle = float(angle) # radians
 
         self.pressed_left = False
         self.pressed_right = False
         self.hovered = False
+
+    def __repr__(self) -> str:
+        fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
+        vals = ", ".join(map(fs, (self.pos.x, self.pos.y, self.radius.x, self.radius.y, self.angle)))
+        return "Ellipse<"+vals+">"
 
     def draw(self, surface: pygame.Surface) -> None:
         points = []
@@ -212,7 +231,7 @@ class Ellipse(Prim):
         color = COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (COLOR_PRIM_HOVERED if self.hovered else COLOR_PRIM)
         pygame.draw.aalines(surface, color, False, points)
 
-    def handle_event(self, event: pygame.Event) -> None:
+    def handle_event(self, event: pygame.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 self.pressed_left = self.hovered
@@ -230,10 +249,15 @@ class Ellipse(Prim):
             if self.pressed_left and self.pressed_right:
                 delta = Vector2(event.pos) - self.pos
                 self.angle = delta.angle_rad
+                return True
             elif self.pressed_left:
                 self.pos += Vector2(event.rel)
+                return True
             elif self.pressed_right:
                 self.radius += Vector2(event.rel)
+                return True
+
+        return False
 
     def reflect(self, ray: Ray) -> None | tuple[Ray, float]:
         diff = ray.pos - self.pos
@@ -307,6 +331,117 @@ class Ellipse(Prim):
         dist = abs(norm_dist-1) * min(self.radius)
         return dist < GRAB_DIST
 
+class Arc(Prim):
+    def __init__(self, pos:Vector2|tuple, radius:Vector2|tuple|float, start:float, end:float, angle:float):
+        self.pos = Vector2(pos)
+        self.start = float(start)
+        self.end = float(end)
+        self.angle = float(angle)
+
+        self.pressed_left = False
+        self.pressed_right = False
+        self.pressed_p1 = False
+        self.pressed_p2 = False
+        self.pressed = False
+
+        self.hovered_p1 = False
+        self.hovered_p2 = False
+        self.hovered = False
+
+        if isinstance(radius, Vector2|tuple):
+            self.radius = Vector2(radius)
+        else:
+            self.radius = Vector2(radius, radius)
+    
+    def __repr__(self) -> str:
+        fs = lambda x: str(int(x)) if abs(x-int(x))<0.005 else str(round(x,2))
+        vals = ", ".join(map(fs, (self.pos.x, self.pos.y, self.radius.x, self.radius.y, self.angle)))
+        return "Arc<"+vals+">"   
+
+    def draw(self, surface):
+        color = COLOR_PRIM_DRAGGED if (self.pressed_left or self.pressed_right) else (COLOR_PRIM_HOVERED if self.hovered else COLOR_PRIM)
+        steps = 100
+        points = []
+
+        for i in range(steps + 1):
+            t = self.start + (self.end - self.start) * i / steps
+            # Parametric equations for an ellipse, with rotation
+            x = self.radius.x * math.cos(t) * math.cos(self.angle) + self.radius.y * math.sin(t) * math.sin(self.angle)
+            y = self.radius.x * math.cos(t) * math.sin(self.angle) + self.radius.y * math.sin(t) * math.cos(self.angle)
+            points.append((self.pos.x + x, self.pos.y + y))
+        
+        pygame.draw.aalines(surface, color, False, points)
+
+    def handle_event(self, event: pygame.Event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                self.pressed_left = self.hovered
+            elif event.button == 3:
+                self.pressed_right = self.hovered
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                self.pressed_left = False
+            elif event.button == 3:
+                self.pressed_right = False
+
+        elif event.type == pygame.MOUSEMOTION:
+            # TODO add p1.hover
+            self.hovered = self.touch(event.pos)
+            if self.pressed_left and self.pressed_right:
+                delta = Vector2(event.pos) - self.pos
+                self.angle = delta.angle_rad
+                return True
+            elif self.pressed_left:
+                self.pos += Vector2(event.rel)
+                return True
+            elif self.pressed_right:
+                self.radius += Vector2(event.rel)
+                return True
+
+        return False
+    
+    def touch(self, pos) -> bool:
+        """ USES APPROXIMATION """
+        def point_to_segment_sq(pt:Vector2, seg_a:Vector2, seg_b:Vector2):
+            a_to_b = seg_b - seg_a
+            a_to_pt = pt - seg_a
+            param = a_to_pt.dot(a_to_b) / a_to_b.dot(a_to_b)
+            param = max(0, min(1, param))
+            closest = seg_a + param * a_to_b
+            return pt.distance_squared_to(closest)
+
+        steps = 50
+        prev_p = None
+        pos = Vector2(pos)
+        cos_d = math.cos(self.angle)
+        sin_d = math.sin(self.angle)
+
+        # ah yes, the claissical do for loop ... 
+        t = self.start + (self.end - self.start)
+        cos_t = math.cos(t)
+        sin_t = math.sin(t)
+        prev_p = Vector2(
+            self.radius.x * cos_t * cos_d - self.radius.y * sin_t * sin_d,
+            self.radius.x * cos_t * sin_d + self.radius.y * sin_t * cos_d
+        ) + self.pos
+
+        for i in range(1, steps):
+            t = self.start + (self.end - self.start) * i / steps
+            cos_t = math.cos(t)
+            sin_t = math.sin(t)
+            p = Vector2(
+                self.radius.x * cos_t * cos_d - self.radius.y * sin_t * sin_d,
+                self.radius.x * cos_t * sin_d + self.radius.y * sin_t * cos_d
+            ) + self.pos
+
+            if point_to_segment_sq(pos, prev_p, p) < GRAB_DIST_SQ:
+                return True
+                
+            prev_p = p
+
+        return False
+
 class Bezier(Prim):
     def __init__(self, pos:list|tuple) -> None:
         self.pos = [Vector2(p) for p in pos]
@@ -339,19 +474,8 @@ class Bezier(Prim):
             color = COLOR_PRIM_DRAGGED if pr else (COLOR_PRIM_HOVERED if hv else COLOR_PRIM)
             pygame.draw.circle(surface, color, p, GRAB_DIST)
     
-    def handle_event(self, event: pygame.Event):
-        if event.type == pygame.MOUSEMOTION:
-            for i, p in enumerate(self.pos):
-                self.hovered[i] = p.distance_to(event.pos) < GRAB_DIST
-                if self.pressed[i]:
-                    self.pos[i] += event.rel
-            if not any(self.hovered):
-                self.hovered_stroke = self.touch(event.pos)
-            if self.pressed_stroke:
-                for p in self.pos:
-                    p+=event.rel
-                    
-        elif event.type == pygame.MOUSEBUTTONDOWN:
+    def handle_event(self, event: pygame.Event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN:
             self.pressed_stroke = self.hovered_stroke
             for i, h in enumerate(self.hovered):
                 if h:
@@ -361,6 +485,21 @@ class Bezier(Prim):
         elif event.type == pygame.MOUSEBUTTONUP:
             self.pressed = [False] * 4
             self.pressed_stroke = False
+        
+        elif event.type == pygame.MOUSEMOTION:
+            for i, p in enumerate(self.pos):
+                self.hovered[i] = p.distance_to(event.pos) < GRAB_DIST
+                if self.pressed[i]:
+                    self.pos[i] += event.rel
+                    return True
+            if not any(self.hovered):
+                self.hovered_stroke = self.touch(event.pos)
+            if self.pressed_stroke:
+                for p in self.pos:
+                    p+=event.rel
+                return True
+
+        return False
 
     def normal_at(self, t: float):
         t = max(0, min(1, t))
@@ -476,32 +615,23 @@ class Bezier(Prim):
         return Ray(hit_pos, reflect_angle), dist
 
     def touch(self, pos: Vector2 | tuple) -> bool:
-        """ 
-        Returns True if the distance from 'pos' to the curve is < GRAB_DIST.
-        Approximates by checking segments and refining the closest one.
-        """
+        """ USES APPROXIMATION """
         target = Vector2(pos)
-        
-        # 1. Coarse search: Find the closest point among a set of samples
-        # 10-15 samples is usually plenty for a 'grab' check
-        steps = 12
+        steps = 10
         min_dist_sq = float('inf')
         best_t = 0
         
         for i in range(steps + 1):
             t = i / steps
             p = self.point_at(t)
-            # Use magnitude_squared for performance in the loop
             d_sq = target.distance_squared_to(p)
             if d_sq < min_dist_sq:
                 min_dist_sq = d_sq
                 best_t = t
         
-        # 2. Local Refinement (Simple 2-step Golden Section or similar)
-        # We look around best_t to see if a slightly different t is closer
         precision = 1.0 / steps
         search_t = best_t
-        for _ in range(2): # Two iterations is enough for mouse interaction
+        for _ in range(5):
             precision /= 2
             t_low = max(0, search_t - precision)
             t_high = min(1, search_t + precision)
@@ -519,5 +649,4 @@ class Bezier(Prim):
                 min_dist_sq = d_high
                 search_t = t_high
 
-        # 3. Final check against GRAB_DIST
         return min_dist_sq < GRAB_DIST_SQ
